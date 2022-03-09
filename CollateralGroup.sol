@@ -28,12 +28,24 @@ contract CollateralGroup {
 	   pool.deposit(address(dai), dai.balanceOf(address(this)), address(this), 0);
 	}
 
+	modifier callerIsMember {
+		bool isMember = false;
+		for(uint i = 0; i < members.length; i++) {
+			if(members[i] == msg.sender) {
+				isMember = true;
+				break;
+			}
+		}
+		require(isMember == true, "You are not a member.");
+		_;
+	}
+
 	/*When members are ready to remove their funds, and there are no outstanding loans, 
 	anyone can call the withdraw function. 
 	This function should kick off a withdrawal for all members. 
 	For each member it should pay them back their initial deposit 
 	plus their share of any interest earned.*/
-	function withdraw() external {
+	function withdraw() external callerIsMember {
 		uint share = aDai.balanceOf(address(this)) / members.length;
 		
 		aDai.approve(address(pool), type(uint).max);
@@ -48,11 +60,21 @@ contract CollateralGroup {
 	Let's support any ERC20 token that has reserves in the AAVE system.
 	In the CollateralGroup borrow function, call borrow on the AAVE pool 
 	to borrow the amount of asset specified by the arguments.*/
-	function borrow(address asset, uint amount) external {
+	function borrow(address asset, uint amount) external callerIsMember {
+		
+		
 		pool.borrow(asset, amount, 1, 0, address(this));/*The third parameter is the interestRateMode that 
 														should either be 1 for stable or 2 for variable rates.
 														https://docs.aave.com/faq/borrowing#what-is-the-difference-between-stable-and-variable-rate*/
 		
+		/*The health factor is a metric provided by AAVE that tells us 
+		how healthy the ratio between collateral and borrowed assets is.
+		If the health factor falls below one, the collateral is in danger of being liquidated.
+		To ensure that our collateral/borrow ratio stays healthy, let's require that the borrow function 
+		will only execute borrows if the health factor is above 2 after the borrow is completed.*/
+		(,,,,, uint healtFactor) = pool.getUserAccountData(address(this));
+		require(healtFactor > 2e18,"The borrow is too risky.");
+
 		IERC20(asset).transfer(msg.sender, amount);/*After being borrowed, the asset is transferred to the function caller*/
 	}
 
