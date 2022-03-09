@@ -40,8 +40,17 @@ contract CollateralGroup {
 		}
 	}
 
+	/*After the members have transferred their DAI to the smart contract, 
+	let's allow any member to borrow against it. 
+	Let's support any ERC20 token that has reserves in the AAVE system.
+	In the CollateralGroup borrow function, call borrow on the AAVE pool 
+	to borrow the amount of asset specified by the arguments.*/
 	function borrow(address asset, uint amount) external {
+		pool.borrow(asset, amount, 1, 0, address(this));/*The third parameter is the interestRateMode that 
+														should either be 1 for stable or 2 for variable rates.
+														https://docs.aave.com/faq/borrowing#what-is-the-difference-between-stable-and-variable-rate*/
 		
+		IERC20(asset).transfer(msg.sender, amount);/*After being borrowed, the asset is transferred to the function caller*/
 	}
 
 	function repay(address asset, uint amount) external {
