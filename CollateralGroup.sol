@@ -14,6 +14,7 @@ contract CollateralGroup {
 
 	constructor(address[] memory _members) {
        members = _members;
+	  
 	   for(uint i = 0; i < members.length; i++) {
 		   dai.transferFrom(members[i], address(this), depositAmount);
 	   }
@@ -23,7 +24,8 @@ contract CollateralGroup {
        This will allow us to start earning interest on the DAI 
        and also allow it to serve as collateral for future borrows.*/
        dai.approve(address(pool), type(uint).max);
-       pool.deposit(address(dai), dai.balanceOf(address(this)), address(this), 0);
+      
+	   pool.deposit(address(dai), dai.balanceOf(address(this)), address(this), 0);
 	}
 
 	/*When members are ready to remove their funds, and there are no outstanding loans, 
@@ -33,6 +35,7 @@ contract CollateralGroup {
 	plus their share of any interest earned.*/
 	function withdraw() external {
 		uint share = aDai.balanceOf(address(this)) / members.length;
+		
 		aDai.approve(address(pool), type(uint).max);
 		
 		for(uint i = 0; i < members.length; i++) {
@@ -53,7 +56,15 @@ contract CollateralGroup {
 		IERC20(asset).transfer(msg.sender, amount);/*After being borrowed, the asset is transferred to the function caller*/
 	}
 
+	/*When a member is ready to repay their loan, they need to call the repay function. 
+	Before calling this function they will need to approve the collateral group 
+	to spend the particular asset, otherwise the transfer will fail.*/
 	function repay(address asset, uint amount) external {
+		IERC20(asset).transferFrom(msg.sender, address(this), amount);
 		
+		IERC20(asset).approve(address(pool), amount);
+		
+		pool.repay(asset, amount, 1, address(this));/*The third parameter is the rateMode that must 
+													be the same as that in the borrow function*/ 
 	}
 }
