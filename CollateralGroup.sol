@@ -13,7 +13,7 @@ contract CollateralGroup {
 	address[] members;
 
 	constructor(address[] memory _members) {
-       members = _members;
+		members = _members;
 	  
 	   for(uint i = 0; i < members.length; i++) {
 		   dai.transferFrom(members[i], address(this), depositAmount);
@@ -62,10 +62,10 @@ contract CollateralGroup {
 	to borrow the amount of asset specified by the arguments.*/
 	function borrow(address asset, uint amount) external callerIsMember {
 		
-		
-		pool.borrow(asset, amount, 1, 0, address(this));/*The third parameter is the interestRateMode that 
-														should either be 1 for stable or 2 for variable rates.
-														https://docs.aave.com/faq/borrowing#what-is-the-difference-between-stable-and-variable-rate*/
+		/*The third parameter is the interestRateMode that 
+		should either be 1 for stable or 2 for variable rates.
+		https://docs.aave.com/faq/borrowing#what-is-the-difference-between-stable-and-variable-rate*/
+		pool.borrow(asset, amount, 1, 0, address(this));
 		
 		/*The health factor is a metric provided by AAVE that tells us 
 		how healthy the ratio between collateral and borrowed assets is.
@@ -75,7 +75,8 @@ contract CollateralGroup {
 		(,,,,, uint healtFactor) = pool.getUserAccountData(address(this));
 		require(healtFactor > 2e18,"The borrow is too risky.");
 
-		IERC20(asset).transfer(msg.sender, amount);/*After being borrowed, the asset is transferred to the function caller*/
+		/*After being borrowed, the asset is transferred to the function caller*/
+		IERC20(asset).transfer(msg.sender, amount);
 	}
 
 	/*When a member is ready to repay their loan, they need to call the repay function. 
@@ -86,7 +87,8 @@ contract CollateralGroup {
 		
 		IERC20(asset).approve(address(pool), amount);
 		
-		pool.repay(asset, amount, 1, address(this));/*The third parameter is the rateMode that must 
-													be the same as that in the borrow function*/ 
+		/*The third parameter is the rateMode that must 
+		be the same as that in the borrow function*/ 
+		pool.repay(asset, amount, 1, address(this));
 	}
 }
