@@ -17,10 +17,27 @@ contract CollateralGroup {
 	   for(uint i = 0; i < members.length; i++) {
 		   dai.transferFrom(members[i], address(this), depositAmount);
 	   }
+       
+       /*Now that all the members have paid their DAI deposit, 
+       we can deposit it all into the AAVE lending pool. 
+       This will allow us to start earning interest on the DAI 
+       and also allow it to serve as collateral for future borrows.*/
+       dai.approve(address(pool), type(uint).max);
+       pool.deposit(address(dai), dai.balanceOf(address(this)), address(this), 0);
 	}
 
+	/*When members are ready to remove their funds, and there are no outstanding loans, 
+	anyone can call the withdraw function. 
+	This function should kick off a withdrawal for all members. 
+	For each member it should pay them back their initial deposit 
+	plus their share of any interest earned.*/
 	function withdraw() external {
+		uint share = aDai.balanceOf(address(this)) / members.length;
+		aDai.approve(address(pool), type(uint).max);
 		
+		for(uint i = 0; i < members.length; i++) {
+			pool.withdraw(address(dai), share, members[i]);
+		}
 	}
 
 	function borrow(address asset, uint amount) external {
